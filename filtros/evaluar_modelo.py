@@ -7,12 +7,9 @@ from sklearn.metrics import (
 )
 
 class EvaluateModelFilter:
-    """Evalúa el modelo con los datos de prueba."""
-
     def run(self, model, X_test, y_test):
         predictions = model.predict(X_test)
         labels = list(model.classes_)
-
         metrics = {
             "accuracy": round(
                 accuracy_score(y_test, predictions) * 100, 2
@@ -45,5 +42,4 @@ class EvaluateModelFilter:
                 labels=labels
             ).tolist()
         }
-
         return metrics

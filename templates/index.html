@@ -46,7 +46,8 @@
     <main class="container wm-wrap wm-main flex-grow-1{% if not show_results %} wm-center{% endif %}">
         {% with messages = get_flashed_messages() %}
         {% for message in messages %}
-        <div class="alert wm-alert alert-dismissible d-flex align-items-start wm-narrow" role="alert">
+        <div class="alert wm-alert alert-dismissible d-flex align-items-start wm-narrow" role="alert"
+            aria-live="assertive" aria-atomic="true">
             <i class="bi bi-exclamation-triangle-fill me-2 mt-1"></i>
             <div>{{ message }}</div>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar aviso"></button>
@@ -61,11 +62,14 @@
         <div class="wm-narrow">
             <div class="wm-intro">
                 <i class="bi bi-cloud-sun mb-2 d-block"></i>
-                <h1 class="h3 mb-1">Predicción de lluvia</h1>
+                <h1 class="h3 mb-1" tabindex="-1">Predicción de lluvia</h1>
                 <p class="wm-muted mb-0">
                     Sube tu archivo de datos y el modelo se entrena para predecir si lloverá.
                 </p>
             </div>
+
+            <div class="mt-4">{% include "_prediction_result.html" %}</div>
+            {% include "_prediction_form.html" %}
 
             <section class="wm-card" aria-labelledby="t-datos">
                 <div class="wm-card-head">
@@ -94,6 +98,7 @@
                         <button class="btn btn-primary btn-lg w-100 mt-4" type="submit">
                             <i class="bi bi-play-fill me-1"></i>Entrenar y ver resultados
                         </button>
+                        <p class="visually-hidden" data-loading-status aria-live="polite"></p>
                     </form>
                 </div>
             </section>
@@ -112,6 +117,8 @@
                     entrenar.
                 </p>
             </div>
+
+            {% include "_prediction_result.html" %}
 
             <dl class="wm-facts">
                 <div>
@@ -209,6 +216,8 @@
             <p class="small wm-muted mt-4 mb-0 pt-3 wm-divider">
                 <i class="bi bi-save me-1"></i>Modelo guardado en <code>{{ results.model_path }}</code>
             </p>
+
+            <div class="mt-4">{% include "_prediction_form.html" %}</div>
         </section>
         {% endif %}
     </main>
@@ -280,6 +289,9 @@
                     if (!btn) return;
                     btn.dataset.label = btn.innerHTML;
                     btn.disabled = true;
+                    form.setAttribute("aria-busy", "true");
+                    var status = form.querySelector("[data-loading-status]");
+                    if (status) status.textContent = form.dataset.loading;
                     btn.innerHTML =
                         '<span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>' +
                         form.dataset.loading;
@@ -293,6 +305,9 @@
                         btn.innerHTML = btn.dataset.label;
                         btn.disabled = false;
                     }
+                    form.removeAttribute("aria-busy");
+                    var status = form.querySelector("[data-loading-status]");
+                    if (status) status.textContent = "";
                 });
             });
         })();

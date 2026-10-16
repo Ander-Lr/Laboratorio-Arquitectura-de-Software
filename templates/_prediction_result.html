@@ -1,0 +1,14 @@
+{% if prediction_result %}
+<div class="wm-prediction-result mb-4" role="status" aria-live="polite" aria-atomic="true">
+    <i class="bi bi-cloud-check-fill" aria-hidden="true"></i>
+    <div>
+        <h2 class="h5 mb-1">Predicción generada</h2>
+        <p class="mb-0">Clase estimada: <strong>{{ prediction_result.label }}</strong>
+            {% if prediction_result.probability is not none %}
+            <span class="d-block small mt-1">Confianza del modelo en esta clase:
+                {{ prediction_result.probability }}%.</span>
+            {% endif %}
+        </p>
+    </div>
+</div>
+{% endif %}

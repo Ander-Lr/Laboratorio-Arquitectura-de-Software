@@ -2,8 +2,6 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.pipeline import Pipeline
 
 class TrainModelFilter:
-    """Construye y entrena el modelo de clasificación."""
-
     def run(self, X_train, y_train, info):
         model = Pipeline([
             ("preprocessor", info["preprocessor"]),
@@ -16,8 +14,6 @@ class TrainModelFilter:
                 )
             )
         ])
-
         model.fit(X_train, y_train)
-
         return model
 
