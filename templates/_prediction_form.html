@@ -7,25 +7,53 @@
         <p class="mb-0 small wm-muted">Completa los mismos datos que el modelo recibió durante el entrenamiento.</p>
     </div>
     <div class="wm-card-body">
-        <form action="{{ url_for('predict') }}" method="post"
+        <form action="{{ url_for('predict', _anchor='prediccion') }}" method="post" novalidate data-validate
             data-loading="Calculando predicción…" aria-describedby="prediction-help">
             <p id="prediction-help" class="small wm-muted mb-3">
-                Los campos numéricos aceptan decimales. Los demás aceptan texto.
+                Cada campo indica el rango permitido. Si un valor queda fuera de lo que el modelo vio
+                al entrenar, se te avisará, pero podrás predecir igual.
             </p>
             <div class="row g-3">
                 {% for field in prediction_fields %}
+                {% set fid = "prediction-" ~ loop.index %}
+                {% set range = field.range %}
                 <div class="col-md-6">
-                    <label class="form-label fw-semibold" for="prediction-{{ loop.index }}">{{ field.name }}</label>
-                    <input class="form-control" id="prediction-{{ loop.index }}" name="{{ field.name }}"
+                    <label class="form-label fw-semibold" for="{{ fid }}">{{ field.name | etiqueta }}</label>
+                    <input class="form-control{% if field.error %} is-invalid{% elif field.warning %} is-warning{% endif %}"
+                        id="{{ fid }}" name="{{ field.name }}"
                         type="{{ 'number' if field.numeric else 'text' }}"
                         {% if field.numeric %}step="any" inputmode="decimal"{% endif %}
-                        value="{{ field.value }}" required />
+                        {% if field.min is not none %}min="{{ field.min }}"{% endif %}
+                        {% if field.max is not none %}max="{{ field.max }}"{% endif %}
+                        {% if field.maxlength %}maxlength="{{ field.maxlength }}"{% endif %}
+                        {% if range %}data-range-min="{{ range.min }}" data-range-max="{{ range.max }}"
+                        placeholder="Ej. {{ '%g' | format((range.min + range.max) / 2) }}"{% endif %}
+                        value="{{ field.value }}" required
+                        aria-describedby="{{ fid }}-hint {{ fid }}-error {{ fid }}-warning"
+                        {% if field.error %}aria-invalid="true"{% endif %} />
+                    <div id="{{ fid }}-hint" class="form-text wm-hint">
+                        {% if field.min is not none %}
+                        <span><i class="bi bi-sliders me-1" aria-hidden="true"></i>Permitido: {{ '%g' | format(field.min) }} – {{ '%g' | format(field.max) }}</span>
+                        {% endif %}
+                        {% if range %}
+                        <span><i class="bi bi-database me-1" aria-hidden="true"></i>Entrenamiento: {{ '%g' | format(range.min) }} – {{ '%g' | format(range.max) }}</span>
+                        {% endif %}
+                    </div>
+                    <div id="{{ fid }}-error" class="invalid-feedback" data-error>{{ field.error or "" }}</div>
+                    <div id="{{ fid }}-warning" class="wm-warning-feedback{% if field.warning and not field.error %} d-block{% endif %}" data-warning>
+                        {% if field.warning and not field.error %}<i class="bi bi-exclamation-circle me-1" aria-hidden="true"></i>{{ field.warning }}{% endif %}
+                    </div>
                 </div>
                 {% endfor %}
             </div>
-            <button class="btn btn-primary w-100 mt-4" type="submit">
-                <i class="bi bi-magic me-1" aria-hidden="true"></i>Predecir lluvia
-            </button>
+            <div class="d-flex gap-2 mt-4">
+                <button class="btn btn-outline-primary" type="button" data-clear>
+                    <i class="bi bi-eraser me-1" aria-hidden="true"></i>Limpiar
+                </button>
+                <button class="btn btn-primary flex-grow-1" type="submit">
+                    <i class="bi bi-magic me-1" aria-hidden="true"></i>Predecir lluvia
+                </button>
+            </div>
             <p class="visually-hidden" data-loading-status aria-live="polite"></p>
         </form>
     </div>
