@@ -22,6 +22,12 @@
             </div>
         </div>
         {% endif %}
+        {% if prediction_result.extrapolated %}
+        <p class="wm-forecast-note mb-0">
+            <i class="bi bi-exclamation-circle me-1" aria-hidden="true"></i>Algunos valores están fuera del rango
+            de entrenamiento: toma esta predicción con cautela.
+        </p>
+        {% endif %}
     </div>
 </section>
 {% endif %}

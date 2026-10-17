@@ -34,21 +34,36 @@
         <div class="container wm-wrap d-flex flex-wrap align-items-center justify-content-between gap-3">
             <div>
                 <h1 class="h3 mb-1">Resultados del modelo</h1>
-                <p class="wm-muted mb-0">Revisa qué tan bien aprendió el modelo.</p>
+                <p class="wm-muted mb-0">
+                    Revisa qué tan bien aprendió el modelo y prueba predicciones más abajo.
+                    {% if results.trained_at %}
+                    <span class="d-block small">
+                        <i class="bi bi-clock-history me-1" aria-hidden="true"></i>Entrenado el {{ results.trained_at | fecha }}
+                        {% if results.dataset_name %} con <code>{{ results.dataset_name }}</code>{% endif %}
+                    </span>
+                    {% endif %}
+                </p>
             </div>
-            <a class="btn btn-outline-primary" href="{{ url_for('index') }}">
-                <i class="bi bi-arrow-left me-1"></i>Cargar otro dataset
-            </a>
+            <div class="d-flex flex-wrap gap-2">
+                <a class="btn btn-primary" href="#prediccion">
+                    <i class="bi bi-magic me-1" aria-hidden="true"></i>Probar predicción
+                </a>
+                <button class="btn btn-outline-danger" type="button" data-bs-toggle="modal"
+                    data-bs-target="#modal-reentrenar">
+                    <i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>Reentrenar modelo
+                </button>
+            </div>
         </div>
     </div>
     {% endif %}
 
     <main class="container wm-wrap wm-main flex-grow-1{% if not show_results %} wm-center{% endif %}">
-        {% with messages = get_flashed_messages() %}
-        {% for message in messages %}
-        <div class="alert wm-alert alert-dismissible d-flex align-items-start wm-narrow" role="alert"
-            aria-live="assertive" aria-atomic="true">
-            <i class="bi bi-exclamation-triangle-fill me-2 mt-1"></i>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+        {% set ok = category == "success" %}
+        <div class="alert wm-alert{% if ok %} wm-alert--success{% endif %} alert-dismissible d-flex align-items-start wm-narrow"
+            role="{{ 'status' if ok else 'alert' }}" aria-live="{{ 'polite' if ok else 'assertive' }}" aria-atomic="true">
+            <i class="bi {{ 'bi-check-circle-fill' if ok else 'bi-exclamation-triangle-fill' }} me-2 mt-1" aria-hidden="true"></i>
             <div>{{ message }}</div>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar aviso"></button>
         </div>
@@ -68,8 +83,10 @@
                 </p>
             </div>
 
-            <div class="mt-4">{% include "_prediction_result.html" %}</div>
-            {% include "_prediction_form.html" %}
+            <div id="prediccion" class="wm-anchor">
+                <div class="mt-4">{% include "_prediction_result.html" %}</div>
+                {% include "_prediction_form.html" %}
+            </div>
 
             <section class="wm-card" aria-labelledby="t-datos">
                 <div class="wm-card-head">
@@ -79,27 +96,7 @@
                     <p class="mb-0 small wm-muted">Sube el archivo con las observaciones meteorológicas.</p>
                 </div>
                 <div class="wm-card-body">
-                    <form action="{{ url_for('train') }}" method="post" enctype="multipart/form-data"
-                        data-loading="Entrenando modelo…">
-                        <label class="dropzone" id="dropzone" for="dataset">
-                            <i class="bi bi-file-earmark-spreadsheet dz-icon" id="dz-icon"></i>
-                            <span class="dz-title" id="dz-title">Elige un archivo CSV o arrástralo aquí</span>
-                            <span class="dz-sub" id="dz-sub">Solo se aceptan archivos .csv</span>
-                            <input class="visually-hidden" id="dataset" type="file" name="dataset"
-                                accept=".csv,text/csv" required />
-                        </label>
-
-                        <p class="small wm-muted mt-3 mb-0">
-                            <i class="bi bi-info-circle me-1"></i>
-                            El archivo necesita columnas con las características y una columna objetivo
-                            con al menos dos clases. Se recomienda llamarla <code>rain</code>.
-                        </p>
-
-                        <button class="btn btn-primary btn-lg w-100 mt-4" type="submit">
-                            <i class="bi bi-play-fill me-1"></i>Entrenar y ver resultados
-                        </button>
-                        <p class="visually-hidden" data-loading-status aria-live="polite"></p>
-                    </form>
+                    {% with retrain = false %}{% include "_train_form.html" %}{% endwith %}
                 </div>
             </section>
         </div>
@@ -117,8 +114,6 @@
                     entrenar.
                 </p>
             </div>
-
-            {% include "_prediction_result.html" %}
 
             <dl class="wm-facts">
                 <div>
@@ -217,10 +212,43 @@
                 <i class="bi bi-save me-1"></i>Modelo guardado en <code>{{ results.model_path }}</code>
             </p>
 
-            <div class="mt-4">{% include "_prediction_form.html" %}</div>
+            {# Resultado y formulario juntos: tras predecir, la página vuelve aquí sin perder las métricas #}
+            <div id="prediccion" class="wm-anchor mt-4">
+                {% include "_prediction_result.html" %}
+                {% include "_prediction_form.html" %}
+            </div>
         </section>
         {% endif %}
     </main>
+
+    {% if show_results %}
+    <!-- ================= MODAL: REENTRENAR ================= -->
+    <div class="modal fade" id="modal-reentrenar" tabindex="-1" aria-labelledby="t-reentrenar" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title h5" id="t-reentrenar">
+                        <i class="bi bi-arrow-repeat me-2" aria-hidden="true"></i>Reentrenar modelo
+                    </h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert wm-alert wm-alert--danger d-flex align-items-start mb-3" role="note">
+                        <i class="bi bi-exclamation-octagon-fill me-2 mt-1" aria-hidden="true"></i>
+                        <div>
+                            <strong>Se perderá el entrenamiento actual.</strong>
+                            El modelo{% if results.dataset_name %} entrenado con <code>{{ results.dataset_name }}</code>{% endif %}
+                            y sus métricas (accuracy {{ results.metrics.accuracy | pct }}) se reemplazarán por los
+                            del nuevo archivo. Esta acción no se puede deshacer. Si el nuevo archivo tiene errores,
+                            el modelo actual se conserva.
+                        </div>
+                    </div>
+                    {% with retrain = true %}{% include "_train_form.html" %}{% endwith %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- ================= FOOTER ================= -->
     <footer class="wm-bar wm-bar-bottom">
@@ -281,10 +309,114 @@
                 });
             }
 
+            // Validación en vivo del formulario de predicción (mismas reglas que el servidor)
+            function fmt(n) {
+                return String(parseFloat(Number(n).toPrecision(6)));
+            }
+
+            function mensajeError(field) {
+                var v = field.validity;
+                if (v.valueMissing) {
+                    return v.badInput ? "Ingresa un número válido." : "Este campo es obligatorio.";
+                }
+                if (v.badInput) return "Ingresa un número válido.";
+                if (v.rangeUnderflow) return "El valor mínimo permitido es " + fmt(field.min) + ".";
+                if (v.rangeOverflow) return "El valor máximo permitido es " + fmt(field.max) + ".";
+                if (v.tooLong) return "Máximo " + field.maxLength + " caracteres.";
+                return "";
+            }
+
+            function mensajeAviso(field) {
+                if (!("rangeMin" in field.dataset) || field.value === "") return "";
+                var n = Number(field.value);
+                var min = Number(field.dataset.rangeMin);
+                var max = Number(field.dataset.rangeMax);
+                if (n >= min && n <= max) return "";
+                return "Fuera del rango de entrenamiento (" + fmt(min) + " – " + fmt(max) +
+                    "); la predicción puede ser menos confiable.";
+            }
+
+            function validarCampo(field) {
+                var error = mensajeError(field);
+                var aviso = error ? "" : mensajeAviso(field);
+                var errorBox = document.getElementById(field.id + "-error");
+                var avisoBox = document.getElementById(field.id + "-warning");
+                field.classList.toggle("is-invalid", !!error);
+                field.classList.toggle("is-warning", !!aviso);
+                if (error) field.setAttribute("aria-invalid", "true");
+                else field.removeAttribute("aria-invalid");
+                if (errorBox) errorBox.textContent = error;
+                if (avisoBox) {
+                    avisoBox.innerHTML = aviso
+                        ? '<i class="bi bi-exclamation-circle me-1" aria-hidden="true"></i>'
+                        : "";
+                    avisoBox.appendChild(document.createTextNode(aviso));
+                    avisoBox.classList.toggle("d-block", !!aviso);
+                }
+                return !error;
+            }
+
+            document.querySelectorAll("form[data-validate]").forEach(function (form) {
+                var fields = form.querySelectorAll("input[name]");
+                fields.forEach(function (field) {
+                    // Los errores enviados por el servidor cuentan como campo ya revisado
+                    if (field.classList.contains("is-invalid")) field.dataset.touched = "1";
+                    // El error aparece al salir del campo; después se corrige en cada tecla
+                    field.addEventListener("blur", function () {
+                        if (field.value !== "" || field.validity.badInput) field.dataset.touched = "1";
+                        if (field.dataset.touched) validarCampo(field);
+                    });
+                    field.addEventListener("input", function () {
+                        if (field.dataset.touched || field.validity.valid) validarCampo(field);
+                    });
+                });
+                form.addEventListener("submit", function (e) {
+                    var primero = null;
+                    fields.forEach(function (field) {
+                        field.dataset.touched = "1";
+                        if (!validarCampo(field) && !primero) primero = field;
+                    });
+                    if (primero) {
+                        e.preventDefault();
+                        primero.focus();
+                    }
+                });
+                var clear = form.querySelector("[data-clear]");
+                if (clear) {
+                    clear.addEventListener("click", function () {
+                        fields.forEach(function (field) {
+                            field.value = "";
+                            delete field.dataset.touched;
+                            field.classList.remove("is-invalid", "is-warning");
+                            field.removeAttribute("aria-invalid");
+                            var avisoBox = document.getElementById(field.id + "-warning");
+                            if (avisoBox) {
+                                avisoBox.textContent = "";
+                                avisoBox.classList.remove("d-block");
+                            }
+                        });
+                        if (fields.length) fields[0].focus();
+                    });
+                }
+            });
+
+            // Reentrenar: el botón se habilita solo tras confirmar que se reemplazará el modelo
+            document.querySelectorAll("form[data-confirm]").forEach(function (form) {
+                var check = form.querySelector("[data-confirm-check]");
+                var btn = form.querySelector('button[type="submit"]');
+                check.addEventListener("change", function () {
+                    btn.disabled = !check.checked;
+                });
+                form.addEventListener("submit", function (e) {
+                    if (!check.checked) e.preventDefault();
+                });
+            });
+
             // Botones con estado de carga mientras el servidor trabaja
             var forms = document.querySelectorAll("form[data-loading]");
             forms.forEach(function (form) {
-                form.addEventListener("submit", function () {
+                form.addEventListener("submit", function (e) {
+                    if (e.defaultPrevented) return;
                     var btn = form.querySelector('button[type="submit"]');
                     if (!btn) return;
                     btn.dataset.label = btn.innerHTML;

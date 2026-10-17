@@ -1,3 +1,5 @@
+from datetime import datetime
+
 ETIQUETAS = {
     "temperature": "Temperatura (°C)",
     "humidity": "Humedad (%)",
@@ -35,8 +37,16 @@ def variante_prediccion(valor):
     return {**variante, "texto": clase(valor)}
 
 
+def fecha(valor):
+    try:
+        return datetime.fromisoformat(str(valor)).strftime("%d/%m/%Y %H:%M")
+    except ValueError:
+        return str(valor)
+
+
 def registrar(app):
     app.add_template_filter(pct, "pct")
     app.add_template_filter(etiqueta, "etiqueta")
     app.add_template_filter(clase, "clase")
+    app.add_template_filter(fecha, "fecha")
     app.add_template_global(variante_prediccion)
