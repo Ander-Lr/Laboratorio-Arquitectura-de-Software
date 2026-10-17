@@ -1,14 +1,27 @@
 {% if prediction_result %}
-<div class="wm-prediction-result mb-4" role="status" aria-live="polite" aria-atomic="true">
-    <i class="bi bi-cloud-check-fill" aria-hidden="true"></i>
-    <div>
-        <h2 class="h5 mb-1">Predicción generada</h2>
-        <p class="mb-0">Clase estimada: <strong>{{ prediction_result.label }}</strong>
-            {% if prediction_result.probability is not none %}
-            <span class="d-block small mt-1">Confianza del modelo en esta clase:
-                {{ prediction_result.probability }}%.</span>
-            {% endif %}
-        </p>
+{% set variante = variante_prediccion(prediction_result.label) %}
+{% set probability = prediction_result.probability %}
+<section class="wm-forecast wm-forecast--{{ variante.modificador }} mb-4" role="status" aria-live="polite"
+    aria-atomic="true" aria-labelledby="t-forecast">
+    <div class="wm-forecast-icon">
+        <i class="bi {{ variante.icono }}" aria-hidden="true"></i>
     </div>
-</div>
+    <div class="wm-forecast-body">
+        <p class="wm-forecast-kicker">Predicción generada</p>
+        <h2 id="t-forecast" class="wm-forecast-title">{{ variante.texto }}</h2>
+        <p class="wm-forecast-class">Clase estimada por el modelo: <code>{{ prediction_result.label }}</code></p>
+        {% if probability is not none %}
+        <div class="wm-forecast-confidence">
+            <div class="d-flex justify-content-between">
+                <span>Confianza del modelo</span>
+                <strong>{{ probability | pct }}</strong>
+            </div>
+            <div class="progress" role="progressbar" aria-label="Confianza del modelo"
+                aria-valuenow="{{ probability }}" aria-valuemin="0" aria-valuemax="100">
+                <div class="progress-bar wm-w-{{ ((probability / 5) | round | int) * 5 }}"></div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</section>
 {% endif %}

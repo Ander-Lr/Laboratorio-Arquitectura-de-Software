@@ -3,6 +3,7 @@ from flask import Flask, render_template, request, flash
 
 from tuberias import TuberiaEntrenamiento
 from servicios import ServicioPrediccion
+import presentacion
 
 # Configuración de Flask
 app = Flask(
@@ -10,6 +11,8 @@ app = Flask(
     static_folder="public",
     static_url_path="/public"
 )
+
+presentacion.registrar(app)
 
 app.secret_key = "cambia-esta-clave-en-produccion"
 MODEL_PATH = Path("models/weather_model.joblib")

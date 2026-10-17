@@ -15,7 +15,7 @@
             <div class="row g-3">
                 {% for field in prediction_fields %}
                 <div class="col-md-6">
-                    <label class="form-label fw-semibold" for="prediction-{{ loop.index }}">{{ field.name }}</label>
+                    <label class="form-label fw-semibold" for="prediction-{{ loop.index }}">{{ field.name | etiqueta }}</label>
                     <input class="form-control" id="prediction-{{ loop.index }}" name="{{ field.name }}"
                         type="{{ 'number' if field.numeric else 'text' }}"
                         {% if field.numeric %}step="any" inputmode="decimal"{% endif %}
