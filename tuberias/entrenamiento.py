@@ -1,3 +1,4 @@
+from datetime import datetime
 from pathlib import Path
 
 from filtros import (
@@ -16,7 +17,7 @@ class TuberiaEntrenamiento:
         self.model_path = Path(model_path)
         self.model_path.parent.mkdir(parents=True, exist_ok=True)
 
-    def run(self, archivo):
+    def run(self, archivo, nombre=None):
         raw = LoadDatasetFilter().run(archivo)
         validated = ValidateDatasetFilter(self.target).run(raw)
         X, y, info = PrepareDataFilter(self.target).run(validated)
@@ -32,7 +33,9 @@ class TuberiaEntrenamiento:
                 for key, value in y.value_counts().items()
             },
             "metrics": metrics,
-            "model_path": str(self.model_path)
+            "model_path": str(self.model_path),
+            "dataset_name": nombre,
+            "trained_at": datetime.now().isoformat(timespec="seconds")
         }
         GuardarModeloFilter(self.model_path).run(model, X, info, results)
         return results

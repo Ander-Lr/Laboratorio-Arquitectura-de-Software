@@ -13,6 +13,14 @@ class GuardarModeloFilter:
                     column: str(dtype)
                     for column, dtype in X.dtypes.items()
                 },
+                "feature_ranges": {
+                    column: {
+                        "min": float(X[column].min()),
+                        "max": float(X[column].max())
+                    }
+                    for column in info["numeric_columns"]
+                    if X[column].notna().any()
+                },
                 "target": info["target"],
                 "results": results
             },
